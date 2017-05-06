@@ -29,6 +29,72 @@ class ResizingCanvas(Canvas):
 
         self.scale('all', 0, 0, wscale, hscale)
 
+
+class ButtonGroup():
+    def __init__(self, parent):
+        self._parent = parent
+        self._label_list = []
+        self._label = None
+        self._max = None
+        self._min = None
+
+    def add_buttons(self, index, extent=None):
+        # Make color selection button
+        if extent is not None:
+            min = extent[0]
+            max = extent[1]
+        else:
+            min = ''
+            max = ''
+
+        button = ttk.Button(self._parent, text="Choose Color",
+                            command=self.choose_color)
+        button.grid(column=0, row=index + 5, sticky=(N, S))
+        # Display the selected color on a background label
+        # label = ttk.Label(self.parent, textvariable=self.color[index])
+        self._label = ttk.Label(self._parent, width=7)
+        self._label.grid(column=1, row=index + 5, sticky=(N, S, E, W))
+        # Empty label to add space in row
+        ttk.Label(self._parent, width=3).grid(column=2, row=index + 4)
+        # Create Entry for Min value
+        self._min = StringVar(self._parent, value=min)
+        min_ent = ttk.Entry(self._parent, width=5, textvariable=self._min)
+        min_ent.grid(column=4, row=index + 5)
+        # Empty label to add space in row
+        # ttk.Label(parent, width=1).grid(column=4, row=index)
+        # Create Entry for Max value
+        self._max = StringVar(self._parent, value=max)
+        max_ent = ttk.Entry(self._parent, width=5, textvariable=self._max)
+        max_ent.grid(column=5, row=index + 5)  # , sticky=(N,S))
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def max(self):
+        return self._max
+
+    @property
+    def min(self):
+        return self._min
+
+    def get_color(self, type='str'):
+        if type is 'object':
+            return Color(str(self.label['background']))
+        elif type is 'rgb':
+            return Color(str(self.label['background'])).rgb
+        else:
+            return str(self.label['background'])
+
+    def choose_color(self):
+        """Update the color based upon the user input
+
+        """
+        #
+        result = askcolor(color='red', title="Choose Color")
+        self.label.configure(background=result[1])
+
 class ColorScaler(object):
     """Creates an ColorScaler object that creates a gradient between three
         selected colors.
@@ -75,19 +141,19 @@ class ColorScaler(object):
         self._gradient.append(ttk.Label(self._parent, width=5, background='red'))
         self._gradient[0].grid(column=2, row=0, columnspan=2)
         ttk.Button(self._parent, text='Range from',
-                   command=lambda: self.set_color(
+                   command=lambda: set_color(
                        self._gradient[0])).grid(column=1, row=0)
         self._gradient.append(ttk.Label(self._parent, width=5,
                                         background=Color('white')))
         self._gradient[1].grid(column=2, row=1, columnspan=2)
         ttk.Button(self._parent, text='to',
-                   command=lambda: self.set_color(self._gradient[1])
+                   command=lambda: set_color(self._gradient[1])
                    ).grid(column=1, row=1)
         self._gradient.append(ttk.Label(self._parent, width=5,
                                         background=Color('blue')))
         self._gradient[2].grid(column=2, row=3, columnspan=2)
         ttk.Button(self._parent, text='End with',
-                   command=lambda: self.set_color(self._gradient[2])
+                   command=lambda: set_color(self._gradient[2])
                    ).grid(column=1, row=3)
 
         ttk.Button(self._parent, text='Apply Gradient',
@@ -99,12 +165,7 @@ class ColorScaler(object):
 
         self.set_scale_values(ten_pct_scale)
         for i in range(13):
-            button, label, low, high = self.make_buttons(i)
-            self._label_list.append(label)
-            self._range.append((low, high))
-
-
-
+            self._label_list = ButtonGroup(self._parent).add_buttons(i,self._maxs[i])
 
         ttk.Button(self._parent, text='Apply', command=self.get_scale).grid(
             column=0, row=18)
@@ -161,8 +222,7 @@ class ColorScaler(object):
                 print(min, max)
                 print(val)
                 if max > val > min:
-                    color = Color(str(self._label_list[index]['background']))
-                    region.fill_color = color
+                    region.fill_color = self._label_list[index].get_color()
                     break
         for widget in self._root.winfo_children():
             print("Im the widget")
@@ -173,9 +233,6 @@ class ColorScaler(object):
                                                              activeoutline=region.outline_color,
                                                              width=region.outline_width)
 
-    def set_color(self, label):
-        result = askcolor('red', title='Choose Color')
-        label.configure(background=result[1])
 
     def get_bgc(self, label):
         if label is not None:
@@ -196,23 +253,17 @@ class ColorScaler(object):
         # get the color of the widget and the associated values of the 
         # entry widgets next to it
         # Get current color value for each button and convert from hex to rgb
-        rgb_list = []
+
         for label in self._label_list:
-            c = Color(str(label['background']))
-            rgb_list.append(c.rgb)
-
-        # write the min, max of the range, then rgb values for each line
-
-        for index, line in enumerate(rgb_list):
             scaled = []
+            rgb = label.get_color(type='rgb')
             for i in range(3):
                 # scale rgb value from 0 to 1.0 to 0 to 255
                 # append each value in the tuple to a list since tuples can't
                 # do math on each element
-                scaled.append(line[i] * 255.0)
+                scaled.append(rgb[i] * 255.0)
             file.write('{0[0]:.2f}, {0[1]:.2f}, {0[2]:.2f}'.format(scaled) +
-                       ' {0}, {1} \n'.format(self._maxs[index][0],
-                                             self._maxs[index][1]))
+                       ' {0}, {1} \n'.format(label.min, label.max))
         # close file
         file.close()
 
@@ -284,15 +335,10 @@ class ColorScaler(object):
                 print("Error number of colors in gradient can't be divided evenly")
                 sys.exit()
 
-    def choose_color(self, index=0):
-        """Update the color based upon the user input
-        
-        """
-        # 
-        result = askcolor(color='red', title="Choose Color")
-        if index is not None:
-            self._parent.after(20, lambda: self._label_list[index].configure(
-                background=result[1]))
+def set_color(label):
+    result = askcolor('red', title='Choose Color')
+    label.configure(background=result[1])
+
 
 
 def main():
