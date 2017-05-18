@@ -117,7 +117,6 @@ def read_ascii_data(filename):
     flag = False
     data = {}
     for line in file:
-
         if line.startswith('#'):
             continue
 
@@ -127,7 +126,6 @@ def read_ascii_data(filename):
             regions = {}
             values = []
             continue
-
         splits = line.split()
         size = len(splits)
         if flag and size > 1:
@@ -144,7 +142,6 @@ def read_ascii_data(filename):
         if '<End>' in line:
             data[dset_name] = regions
             flag = False
-
     REGION_LIST.add_dataset(data)
 
     return

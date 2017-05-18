@@ -33,7 +33,6 @@ class ResizingCanvas(Canvas):
 class ButtonGroup():
     def __init__(self, parent):
         self._parent = parent
-        self._label_list = []
         self._label = None
         self._max = None
         self._min = None
@@ -163,10 +162,12 @@ class ColorScaler(object):
         ttk.Label(self._parent, text='Max').grid(row=4, column=5, sticky=(E, W))
         ten_pct_scale = [1e20, 1.1, 1.08, 1.06, 1.04, 1.02, 1.01, 0.99, 0.98, 0.96, 0.94, 0.92, 0.9, 1e-20]
 
-        self.set_scale_values(ten_pct_scale)
+        scale_range = set_scale_values(ten_pct_scale)
         for i in range(13):
-            self._label_list = ButtonGroup(self._parent).add_buttons(i,self._maxs[i])
-
+            bg = ButtonGroup(self._parent)
+            bg.add_buttons(i, scale_range[i])
+            self._label_list.append(bg)
+            del bg
         ttk.Button(self._parent, text='Apply', command=self.get_scale).grid(
             column=0, row=18)
         ttk.Button(self._parent, text='Save to File',
@@ -186,16 +187,6 @@ class ColorScaler(object):
     #                                    fill=self.RGB_colors[1][1])
     #        canvas.grid(column=3, row=0, rowspan=10)
     #        canvas.addtag_all('all')
-    def set_scale_values(self, array):
-        """ This method sets the values used by the scale
-
-        """
-
-        def_low = array[1::]
-        def_high = array[0:-1]
-        for low, high in zip(def_low, def_high):
-
-            self._maxs.append([low, high])
 
 
     def close_window(self):
@@ -207,6 +198,7 @@ class ColorScaler(object):
 
         key = self._regions.current_dset
         print(key)
+        print(self._regions.minmax)
         extremes = self._regions.minmax[key]
         print(extremes)
         min = extremes[0]
@@ -224,15 +216,15 @@ class ColorScaler(object):
                 if max > val > min:
                     region.fill_color = self._label_list[index].get_color()
                     break
+        print(self._root.winfo_children())
         for widget in self._root.winfo_children():
             print("Im the widget")
-            print(widget)
+            print(widget.winfo_children())
             if isinstance(widget, Canvas):
                 for region in self._regions:
                     region.canvas_id = widget.create_polygon(region.figure, fill=region.fill_color,
                                                              activeoutline=region.outline_color,
                                                              width=region.outline_width)
-
 
     def get_bgc(self, label):
         if label is not None:
@@ -300,7 +292,8 @@ class ColorScaler(object):
         # middle to bottom
         # TODO: Add three checkboxes to select the three colors to make a
         # a gradient, use red,white,blue as default values at first.
-
+        print(len(self._label_list))
+        print(self._label_list)
         num_butons = len(self._label_list)
         color_range = []
         for label in self._gradient:
@@ -315,8 +308,8 @@ class ColorScaler(object):
 
         if flag:
             # TODO: add flag to only apply defaults if the bg hasn't been set yet
-            self._label_list[0].configure(background=Color('magenta'))
-            self._label_list[-1].configure(background=Color('purple'))
+            self._label_list[0].label.configure(background=Color('magenta'))
+            self._label_list[-1].label.configure(background=Color('purple'))
             if middle.is_integer():
                 middle = int(middle)
                 c_tops = list(color_range[0].range_to(color_range[1],
@@ -325,11 +318,11 @@ class ColorScaler(object):
                                                       middle + 1))
 
                 for i in range(middle):
-                    self._label_list[i + 1].configure(background=c_tops[i])
-                    self._label_list[middle + 1].configure(
+                    self._label_list[i + 1].label.configure(background=c_tops[i])
+                    self._label_list[middle + 1].label.configure(
                         background=color_range[1])
 
-                    self._label_list[middle + i + 2].configure(
+                    self._label_list[middle + i + 2].label.configure(
                         background=c_bots[i + 1])
             else:
                 print("Error number of colors in gradient can't be divided evenly")
@@ -339,7 +332,18 @@ def set_color(label):
     result = askcolor('red', title='Choose Color')
     label.configure(background=result[1])
 
+def set_scale_values(array):
+    """ This method sets the values used by the scale
 
+    """
+
+    def_low = array[1::]
+    def_high = array[0:-1]
+    new_range = []
+    for low, high in zip(def_low, def_high):
+
+        new_range.append([low, high])
+    return new_range
 
 def main():
      root = Tk()

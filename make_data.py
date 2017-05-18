@@ -13,5 +13,5 @@ for id, part in enumerate(parts):
     print(part)
     print(random[id])
     file.write(part + '\t{}\n'.format(random[id]))
-
+file.write('<End>')
 file.close()

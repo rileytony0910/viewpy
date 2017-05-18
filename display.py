@@ -38,7 +38,7 @@ class Display(object):
     
         """
         #
-        FullScreen_Window(self._root)
+        #FullScreen_Window(self._root)
         self._root.title("ViewPY: A Data Viewing Program")
         # The dropdown menu setup
         menu = MenuBar(self._root, self._regions)
