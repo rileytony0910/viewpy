@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import h5py
 from region import Regions
-from display import Display
+from display import Layout
 
 
 # class MenuBar(Frame):
@@ -38,7 +38,7 @@ def main():
     # For Debug
     #print_region_list()
 
-    Display(REGION_LIST).setup()
+    Layout(REGION_LIST).set_layout()
 
 
 def print_region_list():

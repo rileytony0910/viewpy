@@ -100,7 +100,7 @@ class ColorScaler(object):
     
     """
 
-    def __init__(self, root, regions):
+    def __init__(self, root, regions, draw):
         """Initializes the ColorScaler object.
         Args:
             root (object): The Tk Toplevel object
@@ -110,6 +110,8 @@ class ColorScaler(object):
         # Setup the TK object and the Tk Frame
         self._root = root
         self._regions = regions
+        # Canvas to modify the colors on
+        self.canvas_draw = draw
         self._root.title('Create a Color Scale')
         self._parent = ttk.Frame(self._root, padding='5 5 5')
         self._parent.grid(row=0, column=0, sticky=(N, S, E, W))
@@ -216,6 +218,8 @@ class ColorScaler(object):
                 if max > val > min:
                     region.fill_color = self._label_list[index].get_color()
                     break
+        print(self._canvas.winfor_children())
+        print("the kids of the canvas")
         print(self._root.winfo_children())
         for widget in self._root.winfo_children():
             print("Im the widget")

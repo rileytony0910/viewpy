@@ -3,15 +3,16 @@ from tkinter import *
 from tkinter import ttk
 from colour import Color
 from menubar import MenuBar
+from color_scaler import ColorScaler
 from PIL import Image
 
 
 class Display(object):
 
     def __init__(self, regions):
-        self._regions = regions
-        self._root = Tk()
-        # Extract the names of data available for displaying
+        self.regions = regions
+        self.root = Tk()
+        # FullScreen_Window(self._root)
 
         # Initialize to show the region id dataset first
         self._current_dset = 'region id'
@@ -33,45 +34,30 @@ class Display(object):
         """
         self._current_dset = value
 
+class CanvasDrawing(object):
+    def __init__(self, canvas, regions):
+        self.canvas = canvas
+        self.regions = regions
+        self.canvas.pack(side='top', fill='both')
+        self.canvas.configure(scrollregion=(-400, -400, 400, 400))
+
     def setup(self):
         """ Setup the GUI basics
     
         """
         #
-        #FullScreen_Window(self._root)
-        self._root.title("ViewPY: A Data Viewing Program")
-        # The dropdown menu setup
-        menu = MenuBar(self._root, self._regions)
-        self._root = menu.main()
-
-        mainframe = ttk.Frame(self._root, padding='5 5 5 5')
-        mainframe.pack()
-        # mainframe.pack(column=0, row=0, sticky=(N,W,E,S))
-        # root.grid_columnconfigure(0, weight=1)
-        # root.grid_rowconfigure(0,weight=1)
         # Default color range
 
-        default_fills = list(Color('red').range_to(Color("blue"), len(self._regions)))
+        default_fills = list(Color('red').range_to(Color("blue"), len(self.regions)))
         self.set_fill_color(default_fills)
 
-        canvas = Canvas(mainframe, width=1500, height=2000, background='white')
-        canvas.pack(side='top', fill='both')
-        canvas.configure(scrollregion=(-400, -400, 400, 400))
-        menu.build_popupmenu(canvas)
+
         # Add the cfig shapes to the canvas
-        self.draw(canvas)
+        self.draw(self.canvas)
         # canvas.create_rectangle(-10,-10, 10, 10, fill='black')
-        qbut = ttk.Button(mainframe, text='Quit', command=self.close_window)
-        lbl = ttk.Label(mainframe, text='You did it')
-        canvas.grid(column=0, row=0, rowspan=3, sticky=(E, W, N, S))
-        qbut.grid(column=1, row=0, sticky=E)
-        lbl.grid(column=1, row=1, sticky=W)
-        mainframe.grid_columnconfigure(0, weight=1)
-        mainframe.grid_rowconfigure(0, weight=1)
+        #canvas.grid(column=0, row=0, rowspan=3, sticky=(E, W, N, S))
 
         # canvas.bind("<Motion>", Follower())
-
-        self._root.mainloop()
 
     def draw(self, canvas):
         """
@@ -79,12 +65,9 @@ class Display(object):
         :param canvas: 
         :return: 
         """
-        for region in self._regions:
+        for region in self.regions:
             region.canvas_id = canvas.create_polygon(region.figure, fill=region.fill_color,
                                                      activeoutline=region.outline_color, width=region.outline_width)
-
-    def close_window(self):
-        self._root.destroy()
 
     def set_fill_color(self, colors):
         """
@@ -92,13 +75,49 @@ class Display(object):
         :param colors: List of color names to be applied to all regions
         :return: 
         """
-        for region in self._regions:
+        for region in self.regions:
             region.fill_color = colors[region.id]
 
-    def save(self, canvas):
-        ps = canvas.postscript(colormode='color')
+
+class Layout(Display):
+    def __init__(self, regions):
+        Display.__init__(self, regions)
+        self.root.title("ViewPY: A Data Viewing Program")
+
+        self.menubar = MenuBar(self.root)
+        self.mainframe = ttk.Frame(self.root, padding='5 5 5 5')
+        self.mainframe.pack()
+        self.canvas = Canvas(self.mainframe, width=800, height=800, background='white')
+        self.draw = CanvasDrawing(self.canvas, self.regions)
+
+    def set_layout(self):
+        self.menubar.add_all_menus()
+        self.menubar.build_popupmenu(self.canvas)
+        self.draw.setup()
+        self.canvas.grid(column=0, row=0, rowspan=8, sticky=(E, W, N, S))
+        close = ttk.Button(self.mainframe, text='Quit', command=self.close_window)
+        scale = ttk.Button(self.mainframe, text='Set color scale', command=self.color_scaler)
+        vict = ttk.Label(self.mainframe, text='You did it')
+        close.grid(column=1, row=0, sticky=(E,W))
+        scale.grid(column=1, row=1, sticky=(E,W))
+        vict.grid(column=1, row=2, sticky=(E, W))
+
+        self.root.mainloop()
+
+    def color_scaler(self):
+        top = Toplevel(self.root)
+        cs = ColorScaler(top, self.regions, self.draw)
+        cs.main()
+
+    def close_window(self):
+        self.root.destroy()
+
+    def save(self):
+        # This is all just untested code at the moment
+        ps = self.canvas.postscript(colormode='color')
         img = Image.open(io.BytesIO(ps.encode('utf-8')))
         img.save("test.jpg")
+
 
 class FullScreen_Window(object):
     def __init__(self, master, **kwargs):
