@@ -82,7 +82,7 @@ class ButtonGroup():
         if type is 'object':
             return Color(str(self.label['background']))
         elif type is 'rgb':
-            return Color(str(self.label['background'])).rgb
+            return np.asarray(Color(str(self.label['background'])).rgb)
         else:
             return str(self.label['background'])
 
@@ -116,12 +116,7 @@ class ColorScaler(object):
         self._parent = ttk.Frame(self._root, padding='5 5 5')
         self._parent.grid(row=0, column=0, sticky=(N, S, E, W))
         # Setup the global variables used throughout the class
-        self._help = None
-        self._color = []
         self._label_list = []
-        self._maxs = []
-        self._mins = []
-        self._range = []
         self._gradient = []
 
         self._parent.grid_columnconfigure(0, weight=1)
@@ -183,54 +178,40 @@ class ColorScaler(object):
         self._root.grid_rowconfigure(0, weight=1)
         self._root.resizable(True, True)
 
-    #        canvas = Canvas(self.parent, width=50,height=500)
-    #        for i in range(10):
-    #            canvas.create_rectangle(0, i*50, 50, (i+1)*50,
-    #                                    fill=self.RGB_colors[1][1])
-    #        canvas.grid(column=3, row=0, rowspan=10)
-    #        canvas.addtag_all('all')
-
-
     def close_window(self):
         self._root.destroy()
 
     def get_scale(self):
 
         # Get the active data set
-
+        # TODO: Display the current data set and allow it to be selectable
         key = self._regions.current_dset
         print(key)
-        print(self._regions.minmax)
-        extremes = self._regions.minmax[key]
-        print(extremes)
-        min = extremes[0]
-        max = extremes[1]
 
+        color_bins = []
+        for label in self._label_list:
+            color_bins.append([label.min, label.max, label.get_color()])
+        # For each region determine which bin it belongs in and
+        # apply the appropriate color
         for region in self._regions:
             val = region.data[key]
             val = float(val[0])
-            print(self._maxs)
-            for index, list in enumerate(self._maxs):
-                min = list[0]
-                max = list[1]
-                print(min, max)
-                print(val)
+
+            for bin in color_bins:
+
+                min = float(bin[0].get())
+                max = float(bin[1].get())
+                color = bin[2]
+
                 if max > val > min:
-                    region.fill_color = self._label_list[index].get_color()
+                    # TODO: Add a bin counter to know how many regions are in the bin
+                    region.fill_color = color
                     break
-        print(self._canvas.winfor_children())
-        print("the kids of the canvas")
-        print(self._root.winfo_children())
-        for widget in self._root.winfo_children():
-            print("Im the widget")
-            print(widget.winfo_children())
-            if isinstance(widget, Canvas):
-                for region in self._regions:
-                    region.canvas_id = widget.create_polygon(region.figure, fill=region.fill_color,
-                                                             activeoutline=region.outline_color,
-                                                             width=region.outline_width)
+
+        self.canvas_draw.draw()
 
     def get_bgc(self, label):
+
         if label is not None:
             color = str(label['background'])
         else:
@@ -251,53 +232,20 @@ class ColorScaler(object):
         # Get current color value for each button and convert from hex to rgb
 
         for label in self._label_list:
-            scaled = []
-            rgb = label.get_color(type='rgb')
-            for i in range(3):
-                # scale rgb value from 0 to 1.0 to 0 to 255
-                # append each value in the tuple to a list since tuples can't
-                # do math on each element
-                scaled.append(rgb[i] * 255.0)
-            file.write('{0[0]:.2f}, {0[1]:.2f}, {0[2]:.2f}'.format(scaled) +
-                       ' {0}, {1} \n'.format(label.min, label.max))
+            # scale rgb value from 0 to 1.0 to 0 to 255
+            rgb = label.get_color(type='rgb') * 255.0
+
+            file.write('{0[0]:.2f}, {0[1]:.2f}, {0[2]:.2f}'.format(rgb) +
+                       ' {0}, {1} \n'.format(label.min.get(), label.max.get()))
         # close file
         file.close()
-
-    def make_buttons(self, index):
-        # Make color selection button
-        button = ttk.Button(self._parent, text="Choose Color",
-                            command=lambda: self.choose_color(index))
-        button.grid(column=0, row=index + 5, sticky=(N, S))
-        # Display the selected color on a background label
-        # label = ttk.Label(self.parent, textvariable=self.color[index])
-        label = ttk.Label(self._parent, width=7)
-        label.grid(column=1, row=index + 5, sticky=(N, S, E, W))
-        # Empty label to add space in row
-        ttk.Label(self._parent, width=3).grid(column=2, row=index + 4)
-        # Create Entry for Min value
-        array = []
-        array.append(StringVar())
-        min_ent = ttk.Entry(self._parent, width=5, textvariable=self._maxs[index][0])
-        min_ent.grid(column=4, row=index + 5)
-        # Empty label to add space in row
-        # ttk.Label(parent, width=1).grid(column=4, row=index)
-        # Create Entry for Max value
-        array.append(StringVar())
-        self._maxs.append(array)
-        max_ent = ttk.Entry(self._parent, width=5, textvariable=self._maxs[index][1])
-        max_ent.grid(column=5, row=index + 5)  # , sticky=(N,S))
-
-        return button, label, min_ent, max_ent
 
     def apply_gradient(self):
 
         # color range is a list of colors to make a gradient with
         # ordered as [top, middle, bottom]. Gradient is top to middle and 
         # middle to bottom
-        # TODO: Add three checkboxes to select the three colors to make a
-        # a gradient, use red,white,blue as default values at first.
-        print(len(self._label_list))
-        print(self._label_list)
+
         num_butons = len(self._label_list)
         color_range = []
         for label in self._gradient:

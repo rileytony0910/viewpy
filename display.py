@@ -53,20 +53,23 @@ class CanvasDrawing(object):
 
 
         # Add the cfig shapes to the canvas
-        self.draw(self.canvas)
+        self.draw()
         # canvas.create_rectangle(-10,-10, 10, 10, fill='black')
         #canvas.grid(column=0, row=0, rowspan=3, sticky=(E, W, N, S))
 
         # canvas.bind("<Motion>", Follower())
 
-    def draw(self, canvas):
+    def draw(self, canvas=None):
         """
         Draw the shapes to be included in the canvas
         :param canvas: 
         :return: 
         """
+        if canvas is None:
+            canvas = self.canvas
+
         for region in self.regions:
-            region.canvas_id = canvas.create_polygon(region.figure, fill=region.fill_color,
+             region.canvas_id = canvas.create_polygon(region.figure, fill=region.fill_color,
                                                      activeoutline=region.outline_color, width=region.outline_width)
 
     def set_fill_color(self, colors):
